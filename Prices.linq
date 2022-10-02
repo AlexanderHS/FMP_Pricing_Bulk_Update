@@ -10,7 +10,6 @@
 </Query>
 
 #load "xunit"
-
 /*
 Written by Alex Hamilton-Smith on 2022-09-28.
 
@@ -153,7 +152,7 @@ public class CustomerPrice : PricingBaseWithProject
                 var id = cust_div_config.ConfigurationValue;
                 return context.db.Currencies.First(c => c.CurrencyID.ToString() == id);
             }
-            var div_id = this.Customer().CustomerDivisions.First().Division.Company.BaseCurrencyID;
+            var div_id = this.Customer().CustomerDivisions.First().Division.Trading.TradingCurrencyID;
             return context.db.Currencies.First(c => c.CurrencyID == div_id);
         }
         return context.db.Currencies.First(c => c.CurrencyCode == this.CurrencyCode);
@@ -203,7 +202,7 @@ public class PriceClassPrice : PricingBaseWithProject
                 var cust_div_config = customer.CustomerDivisions.First().CustomerDivisionConfigurationValues.FirstOrDefault(d => d.EntityTypeConfiguration.ConfigurationName == "DefaultTransactionCurrency");
                 string id = "";
                 if (cust_div_config != null) id = cust_div_config.ConfigurationValue;
-                if (cust_div_config == null) id = customer.CustomerDivisions.First().Division.Company.BaseCurrencyID.ToString();
+                if (cust_div_config == null) id = customer.CustomerDivisions.First().Division.Trading.TradingCurrencyID.ToString();
                 var currency = context.db.Currencies.First(c => c.CurrencyID.ToString() == id);
                 if (!votes.ContainsKey(currency)) votes[currency] = 1;
                 votes[currency] += 1;
@@ -324,6 +323,16 @@ void PriceClassCorrectCurrency(string correct_class_name, string correct_currenc
     var basic_price = new PriceClassPrice(price_class_name: correct_class_name, itemcode: "MIX1001", value: 1m, start: DateTime.Now, end: null, break_qty: 0, project_name: null, currency_code: null);
     basic_price.CurrencyCode = basic_price.Currency().CurrencyCode;
     $"{correct_class_name} {basic_price.Currency().CurrencyCode}".Dump();
+    Assert.True(basic_price.CurrencyCode == correct_currency_code);
+}
+[Theory]
+[InlineData("BET001", "GBP")]
+[InlineData("ACT001", "AUD")]
+void PriceCustomerCorrectCurrency(string cust_code, string correct_currency_code)
+{
+    var basic_price = new CustomerPrice(customer_code: cust_code, itemcode: "MIX1001", value: 1m, start: DateTime.Now, end: null, break_qty: 0, project_name: null, currency_code: "AUD");
+    Assert.True(basic_price.Customer() != null);
+    basic_price.CurrencyCode = correct_currency_code;
     Assert.True(basic_price.CurrencyCode == correct_currency_code);
 }
 #endregion

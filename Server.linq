@@ -95,7 +95,7 @@ namespace HttpListenerExample
 
                 byte[] data = Encoding.UTF8.GetBytes(String.Format(pageData, pageViews, disableSubmit));
 
-                var payload = GetRequestPostData(ctx.Request);
+                string payload = GetRequestPostData(ctx.Request);
                 PricingSubmission sub = new PricingSubmission("AlexHS", TestOnly: true);
                 if (payload != null)
                 {
