@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-
 <style>
 img {
     max-width: 100%;
@@ -10,23 +9,27 @@ img {
     height: auto;
     width: auto;
 }
-
 </style>
-
 <div class="row justify-content-center">
     <div class="col-auto">
-        <a href="/{{rand}}"><button class="btn btn-lg disabled">What do you want to update?</button></a>
+        <a href=""><button class="btn btn-lg disabled">Templates</button></a>
+        {% for t in templates.keys() %}
         <br>
-        {% for key in base_screens.keys()%}
-        <br>
-        <a href="{{base_screens[key]}}">
-            <button class="btn btn-secondary btn-lg {{btn_colour}}" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasExample" aria-controls="offcanvasExample">
-                {{key}}
-            </button>
+        <a href="{{templates[t]}}">
+            <button class="btn btn-lg bg-primary">{{t}}</button>
         </a>
         <br>
-        {% endfor %}
+        {%endfor%}
         <br>
+        <br>
+        <a href=""><button class="btn btn-lg disabled">Uploads</button></a>
+        {% for u in uploads %}
+        <form method="post" enctype="multipart/form-data">
+            {{ u.hidden_tag() }}
+            {{ u.file }}
+            <input type="submit">
+        </form>
+        {%endfor%}
         <br>
         <div class="landscape">
             {% if number == 0%}
