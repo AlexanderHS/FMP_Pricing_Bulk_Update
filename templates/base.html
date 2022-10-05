@@ -61,7 +61,7 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-            <div class="alert bg-{{ category }}"> {{ message|capitalize }} </div>
+            <div class="alert bg-{{ category }}"> {{ message }} </div>
             {% endfor %}
         {% endif %}
         {% endwith %}
