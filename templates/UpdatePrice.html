@@ -12,17 +12,17 @@ img {
 </style>
 <div class="row justify-content-center">
     <div class="col-auto">
-        <a href=""><button class="btn btn-lg disabled">Templates</button></a>
+        <a href="javascript:window.location.href=window.location.href"><button class="btn btn-lg disabled">Templates</button></a>
         {% for t in templates.keys() %}
         <br>
         <a href="{{templates[t]}}">
-            <button class="btn btn-lg bg-success">{{t}}</button>
+            <button class="btn btn-lg bg-warning">{{t}}</button>
         </a>
         <br>
         {%endfor%}
         <br>
         <br>
-        <a href=""><button class="btn btn-lg disabled">Uploads</button></a>
+        <a href="javascript:window.location.href=window.location.href"><button class="btn btn-lg disabled">Uploads</button></a>
         {% for u in uploads %}
         <form method="post" enctype="multipart/form-data">
             {{ u.hidden_tag() }}

@@ -10,12 +10,10 @@ img {
     height: auto;
     width: auto;
 }
-
 </style>
-
 <div class="row justify-content-center">
     <div class="col-auto">
-        <a href="/{{rand}}"><button class="btn btn-lg disabled">Changes as below.<br>Any existing and conflicting prices will be expired the day before new pricing.<br>Do you want to proceed?</button></a>
+        <a href="javascript:window.location.href=window.location.href"><button class="btn btn-lg disabled">Changes as below.<br>Any existing and conflicting prices will be expired the day before new pricing.<br>Do you want to proceed?</button></a>
         <br>
         {{df.to_html().replace("NaT", "").replace("NaN", "")|safe}}
         <br>

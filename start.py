@@ -18,6 +18,7 @@ UPLOAD_FOLDER = '/uploads'
 ALLOWED_EXTENSIONS = {'.csv'}
 SERVER_PATH = 'http://192.168.0.14:8144'
 NOMINAL_TEST_SUBMISSION_USER = 'AlexHS'
+DEBUG = False
 
 SUBMISSION_USER_OPTIONS = [
     "-",
@@ -33,12 +34,9 @@ Anon = lambda **kwargs: type("Object", (), kwargs)
 
 url_options = [
     "https://lexica.art/api/v1/search?q=woman+at+a+computer+in+wool+top.+promotional+photo+painting",
-    "https://lexica.art/api/v1/search?q=woman+at+a+computer.+promotional+photo+painting+artstation",
-    "https://lexica.art/api/v1/search?q=person+at+computer",
-    "https://lexica.art/api/v1/search?q=old+person+at+computer",
-    "https://lexica.art/api/v1/search?q=wallpaper+scenic+landscape",
-    "https://lexica.art/api/v1/search?q=mountain+creek",
-    "https://lexica.art/api/v1/search?q=gourmet+food",
+    "https://lexica.art/api/v1/search?q=tiger+cartoon",
+    "https://lexica.art/api/v1/search?q=Western+australia+landscape",
+    "https://lexica.art/api/v1/search?q=middle+earth+landscape",
 ]
 
 # to conduct a form submission circumventing input validation an attacker would need this
@@ -276,7 +274,7 @@ def form_file_submit(form: UploadForm, type: str, user: str):
         else:
             local_path = 'uploads/' + filename
             form.file.data.save(local_path)
-            flash('File is a CSV and we were able to read it, this is a good start.', 'info')
+            if DEBUG: flash('File is a CSV and we were able to read it, this is a good start.', 'warning')
             df = pd.read_csv(local_path)
             df = df.loc[:, ~df.columns.str.contains('^Unnamed')] # drop extra columns. e.g. itemcode,value,, -> itemcode,value
             df.dropna(axis = 0, how='all', inplace = True) # drop rows which are all NAN
@@ -292,12 +290,13 @@ def form_file_submit(form: UploadForm, type: str, user: str):
     }
     file_valid = options[type](df)
     if (file_valid):
-        feedback_message += "File contents inspected locally and seem okay."
+        feedback_message += "File passes first set of tests."
     if (file_valid):
-        flash(feedback_message, 'success')
+        if DEBUG: flash(feedback_message, 'warning')
         passed_server_test, info = test_against_server(df, type, user)
         if passed_server_test:
-            flash('Remote server decided file is okay.', 'success')
+            if DEBUG: flash('File passes second set of tests.', 'warning')
+            flash('File passes all tests. Ready to commit changes.', 'warning')
             if not os.path.exists('pkls'):
                 os.mkdir('pkls')
             epoch = datetime.datetime.utcfromtimestamp(0)
@@ -308,7 +307,7 @@ def form_file_submit(form: UploadForm, type: str, user: str):
             # get confirmation from user
             # then send to server to commit changes
         else:
-            flash(f"{str(info).replace('Failed to parsed JSON. ', '')}.", 'warning')
+            flash(f"{repr(info).replace('Failed to parsed JSON. ', '')}.".replace('b"','').replace('"','').replace('..','.'), 'warning')
     else:
         flash('Processing this CSV has failed. Nothing has been saved or changed.', 'danger')
     return None
@@ -320,7 +319,7 @@ def confirm(uid, type):
     print('Got here!')
     temp_file_path = os.path.join('pkls', f'{uid}.pkl')
     if not os.path.exists(temp_file_path):
-        flash(f"Error: cannot find expected file '{temp_file_path}'")
+        flash(f"Error: cannot find expected file '{temp_file_path}'", 'warning')
         return redirect('/')
     temp_file = open(temp_file_path, "rb")
     df = pickle.load(temp_file)
@@ -475,7 +474,7 @@ def is_valid_file(df, required_columns, allowed_columns, numeric_columns, date_c
     return True
 
 def is_valid_list_csv(df):
-    flash('Checking if this is a valid list price file...', 'info')
+    if DEBUG: flash('Checking if this is a valid list price file...', 'warning')
     required_columns = ['itemcode', 'value']
     allowed_columns = ['itemcode', 'value', 'currency', 'start', 'end']
     numeric_columns = ['value']
@@ -483,7 +482,7 @@ def is_valid_list_csv(df):
     return is_valid_file(df=df, allowed_columns=allowed_columns, required_columns=required_columns, numeric_columns=numeric_columns, date_columns=date_columns)
 
 def is_valid_list_break_csv(df):
-    flash('Checking if this is a valid list price break file...', 'info')
+    if DEBUG: flash('Checking if this is a valid list price break file...', 'warning')
     required_columns = ['itemcode', 'value', 'break qty']
     allowed_columns = ['itemcode', 'value', 'currency', 'start', 'end', 'project', 'break qty']
     numeric_columns = ['value', 'break qty']
@@ -491,7 +490,7 @@ def is_valid_list_break_csv(df):
     return is_valid_file(df=df, allowed_columns=allowed_columns, required_columns=required_columns, numeric_columns=numeric_columns, date_columns=date_columns)
 
 def is_valid_class_csv(df):
-    flash('Checking if this is a valid customer price  file...', 'info')
+    if DEBUG: flash('Checking if this is a valid customer price  file...', 'warning')
     required_columns = ['priceclass', 'itemcode', 'value']
     allowed_columns = ['itemcode', 'value', 'currency', 'start', 'end', 'project', 'break qty', 'priceclass']
     numeric_columns = ['value', 'break qty']
@@ -499,7 +498,7 @@ def is_valid_class_csv(df):
     return is_valid_file(df=df, allowed_columns=allowed_columns, required_columns=required_columns, numeric_columns=numeric_columns, date_columns=date_columns)
 
 def is_valid_customer_csv(df):
-    flash('Checking if this is a valid class price file...', 'info')
+    if DEBUG: flash('Checking if this is a valid class price file...', 'warning')
     required_columns = ['customer', 'itemcode', 'value']
     allowed_columns = ['itemcode', 'value', 'currency', 'start', 'end', 'project', 'break qty', 'customer']
     numeric_columns = ['value', 'break qty']
@@ -507,9 +506,9 @@ def is_valid_customer_csv(df):
     return is_valid_file(df=df, allowed_columns=allowed_columns, required_columns=required_columns, numeric_columns=numeric_columns, date_columns=date_columns)
 
 if __name__ == "__main__":
-    if os.path.exists('pkls'):
-        shutil.rmtree('pkls')
     if os.name == "posix":
+        if os.path.exists('pkls'):
+            shutil.rmtree('pkls')
         from waitress import serve
         serve(app, host="0.0.0.0", port=8083)
     if os.name == "nt":
