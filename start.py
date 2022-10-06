@@ -275,6 +275,8 @@ def form_file_submit(form: UploadForm, type: str, user: str):
             feedback_message += "Upload Failed: File doesn't look right. Did you upload a CSV?"
             file_valid = False
         else:
+            if not os.path.exists('uploads'):
+                os.mkdir('uploads')
             local_path = os.path.join('uploads', filename)
             form.file.data.save(local_path)
             if DEBUG: flash('File is a CSV and we were able to read it, this is a good start.', 'warning')
