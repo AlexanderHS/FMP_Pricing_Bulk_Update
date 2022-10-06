@@ -286,9 +286,9 @@ def form_file_submit(form: UploadForm, type: str, user: str):
             df = df.loc[:, ~df.columns.str.contains('^Unnamed')] # drop extra columns. e.g. itemcode,value,, -> itemcode,value
             df.dropna(axis = 0, how='all', inplace = True) # drop rows which are all NAN e.g. del ',,,,'
             if 'value' in df.columns:
-                df['value']=df.value.map(lambda x: locale.atof(x.strip().strip('$')))
+                df['value']=df.value.map(lambda x: locale.atof(x.strip().strip('$').replace(',', '')))
             if 'Value' in df.columns:
-                df['Value']=df.Value.map(lambda x: locale.atof(x.strip().strip('$')))
+                df['Value']=df.Value.map(lambda x: locale.atof(x.strip().strip('$').replace(',', '')))
             ''
             df.columns = df.columns.str.lower()
             os.remove(local_path)
