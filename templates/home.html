@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-
 <style>
 img {
     max-width: 100%;
@@ -10,9 +9,7 @@ img {
     height: auto;
     width: auto;
 }
-
 </style>
-
 <div class="row justify-content-center">
     <div class="col-auto">
         <a href="/{{rand}}"><button class="btn btn-lg disabled">What do you want to update?</button></a>
@@ -29,14 +26,10 @@ img {
         <br>
         <br>
         <div class="landscape">
-            {% if number == 0%}
-            <img src="/static/0.jpg" alt="FMP">
-            {%else%}
             <img src="{{image_url}}" alt="FMP">
             <figcaption class="blockquote-footer">
                 AI generated image from <cite title="Source Title"><a href="https://lexica.art/?q=woman+at+a+computer+in+wool+top.+promotional+photo+painting">Lexica</a></cite>
               </figcaption>
-            {% endif %}
         </div>
     </div>
 </div>

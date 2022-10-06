@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+
 <style>
 img {
     max-width: 100%;
@@ -9,37 +10,38 @@ img {
     height: auto;
     width: auto;
 }
+
 </style>
+
 <div class="row justify-content-center">
     <div class="col-auto">
-        <a href=""><button class="btn btn-lg disabled">Templates</button></a>
-        {% for t in templates.keys() %}
+        <a href="/{{rand}}"><button class="btn btn-lg disabled">Changes as below.<br>Any existing and conflicting prices will be expired the day before new pricing.<br>Do you want to proceed?</button></a>
         <br>
-        <a href="{{templates[t]}}">
-            <button class="btn btn-lg bg-success">{{t}}</button>
-        </a>
+        {{df.to_html().replace("NaT", "").replace("NaN", "")|safe}}
         <br>
-        {%endfor%}
-        <br>
-        <br>
-        <a href=""><button class="btn btn-lg disabled">Uploads</button></a>
-        {% for u in uploads %}
         <form method="post" enctype="multipart/form-data">
-            {{ u.hidden_tag() }}
-            {{ u.file }}
-            {% for error in u.file.errors %}
+            {{form.hidden_tag()}}
+            {{form.confirm.label}}
+            {% for error in form.confirm.errors %}
+            <br>
+            <span style="color: red;">{{ error }}</span>
+            {% endfor %}
+            {{form.confirm}}
+            <br>
+            {{form.user.label}}
+            {{form.user}}
+            {% for error in form.user.errors %}
             <br>
             <span style="color: red;">{{ error }}</span>
             {% endfor %}
             <br>
-            <br>
-            {{ u.submit }}
-            {% for error in u.submit.errors %}
+            {{form.submit}}
+            {% for error in form.submit.errors %}
             <br>
             <span style="color: red;">{{ error }}</span>
             {% endfor %}
         </form>
-        {%endfor%}
+        <br>
         <br>
         <div class="landscape">
             <img src="{{image_url}}" alt="FMP">

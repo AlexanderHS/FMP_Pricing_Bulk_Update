@@ -1,0 +1,4 @@
+PriceClass,ItemCode,Value,Break Qty,Start,End,Project,Currency
+Cura Group,MIX1001,51.1,5,1/12/1995,1/12/2030,,AUD
+Ramsay Health,MIX1001,45.2,10,1/12/1995,1/12/2030,BP100,AUD
+St John of God,MIX1001,34.1,,,,,AUD
