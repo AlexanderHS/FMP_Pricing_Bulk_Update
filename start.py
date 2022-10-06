@@ -265,6 +265,8 @@ def test_against_server(df, type, user, confirmed=False):
     }
     return options[type](df, confirmed, user)
 
+import locale
+
 def form_file_submit(form: UploadForm, type: str, user: str):
     filename = secure_filename(form.file.data.filename)
     feedback_message = ''
@@ -282,7 +284,12 @@ def form_file_submit(form: UploadForm, type: str, user: str):
             if DEBUG: flash('File is a CSV and we were able to read it, this is a good start.', 'warning')
             df = pd.read_csv(local_path)
             df = df.loc[:, ~df.columns.str.contains('^Unnamed')] # drop extra columns. e.g. itemcode,value,, -> itemcode,value
-            df.dropna(axis = 0, how='all', inplace = True) # drop rows which are all NAN
+            df.dropna(axis = 0, how='all', inplace = True) # drop rows which are all NAN e.g. del ',,,,'
+            if 'value' in df.columns:
+                df['value']=df.value.map(lambda x: locale.atof(x.strip().strip('$')))
+            if 'Value' in df.columns:
+                df['Value']=df.Value.map(lambda x: locale.atof(x.strip().strip('$')))
+            ''
             df.columns = df.columns.str.lower()
             os.remove(local_path)
     if type == 'list' and 'break qty' in df.columns:
