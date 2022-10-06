@@ -6,15 +6,359 @@
     <IsProduction>true</IsProduction>
     <Database>AwareNewFairmontTraining</Database>
   </Connection>
+  <Namespace>System.Text.Json</Namespace>
+  <Namespace>Xunit</Namespace>
 </Query>
 
-#load ".\Prices"
 #load "xunit"
 
-void main()
+// Filename:  HttpServer.cs        
+// Author:    Benjamin N. Summerton <define-private-public>        
+// License:   Unlicense (http://unlicense.org/)
+// https://gist.github.com/define-private-public/d05bc52dd0bed1c4699d49e2737e80e7
+
+// Extended by Alex Hamilton-Smith on 2022-09-28.
+
+using System;
+using System.IO;
+using System.Text;
+using System.Net;
+using System.Threading.Tasks;
+
+public static class configs
 {
-    
+    public const int port = 8144;
 }
+
+// local environment may need some version of this:
+
+//  netsh http add urlacl url=http://+:8144/ user=ts.script.user
+
+void Main()
+{
+    context.db = this;
+    HttpListenerExample.HttpServer.db = this;
+    HttpListenerExample.HttpServer.Main();
+}
+
+
+namespace HttpListenerExample
+{
+    class HttpServer
+    {
+        public static UserQuery db;
+        public static HttpListener listener;
+        public static string url = $"http://+:{configs.port}/";
+        public static int pageViews = 0;
+        public static int requestCount = 0;
+        public static string pageData =
+            "<!DOCTYPE>" +
+            "<html>" +
+            "  <head>" +
+            "    <title>Pricing Update Utility</title>" +
+            "  </head>" +
+            "  <body>" +
+            "    <h1>Pricing Update Utility</h1>" +
+            "    <p>Page Views: {0}</p>" +
+            "  </body>" +
+            "</html>";
+
+
+        public static async System.Threading.Tasks.Task HandleIncomingConnections()
+        {
+            bool runServer = true;
+
+            // While a user hasn't visited the `shutdown` url, keep on handling requests
+            while (runServer)
+            {
+                // Will wait here until we hear from a connection
+                HttpListenerContext ctx = await listener.GetContextAsync();
+
+                // Peel out the requests and response objects
+                HttpListenerRequest req = ctx.Request;
+                HttpListenerResponse resp = ctx.Response;
+
+                // Print out some info about the request
+                Console.WriteLine("Request #: {0}", ++requestCount);
+                Console.WriteLine(req.Url.ToString());
+                Console.WriteLine(req.HttpMethod);
+                Console.WriteLine(req.UserHostName);
+                Console.WriteLine(req.UserAgent);
+                Console.WriteLine();
+
+                // Make sure we don't increment the page views counter if `favicon.ico` is requested
+                if (req.Url.AbsolutePath != "/favicon.ico")
+                    pageViews += 1;
+
+                // Write the response info
+                string disableSubmit = !runServer ? "disabled" : "";
+
+                byte[] data = Encoding.UTF8.GetBytes(String.Format(pageData, pageViews, disableSubmit));
+
+                string payload = GetRequestPostData(ctx.Request);
+                PricingSubmission sub = new PricingSubmission("AlexHS", TestOnly: true);
+                if (payload != null)
+                {
+                    try
+                    {	        
+                        payload.Dump();
+                        sub = JsonSerializer.Deserialize<PricingSubmission>(payload);
+                        if (!sub.TestOnly)
+                        {
+                            var proc = new ProcessSubmission(sub);
+                        }
+                        "SUCCESS: Parsed JSON.".Dump();
+                        data = Encoding.UTF8.GetBytes("SUCCESS");
+                    }
+                    catch (Exception e)
+                    {
+                        e.Dump();
+                        
+                        data = Encoding.UTF8.GetBytes($"Failed to parsed JSON. {e.Message}");
+                        "FAIL: Failed to parsed JSON.".Dump();
+                    }
+                }
+                payload.Dump();
+                resp.ContentType = "text/html";
+                resp.ContentEncoding = Encoding.UTF8;
+                resp.ContentLength64 = data.LongLength;
+
+                // Write out to the response stream (asynchronously), then close it
+                await resp.OutputStream.WriteAsync(data, 0, data.Length);
+                resp.Close();
+            }
+        }
+
+        public static void Main()
+        {
+            // Create a Http server and start listening for incoming connections
+            listener = new HttpListener();
+            listener.Prefixes.Add(url);
+            listener.Start();
+            Console.WriteLine("Listening for connections on {0}", url);
+
+            // Handle requests
+            System.Threading.Tasks.Task listenTask = HandleIncomingConnections();
+            listenTask.GetAwaiter().GetResult();
+
+            // Close the listener
+            listener.Close();
+        }
+    }
+}
+
+public static string GetRequestPostData(HttpListenerRequest request)
+{
+    if (!request.HasEntityBody)
+    {
+        return null;
+    }
+    using (System.IO.Stream body = request.InputStream)
+    {
+        using (var reader = new System.IO.StreamReader(body, request.ContentEncoding))
+        {
+            return reader.ReadToEnd();
+        }
+    }
+}
+
+
+public class context
+{
+    public static UserQuery db;
+}
+
+public class PricingSubmission
+{
+    public string SubmittedUserName { get; set; }
+    public bool TestOnly { get; set; }
+    public HashSet<ListPrice> ListPrices { get; set; }
+    public HashSet<ListPriceBreak> ListPriceBreaks { get; set; }
+    public HashSet<CustomerPrice> CustomerPrices { get; set; }
+    public HashSet<PriceClassPrice> PriceClassPrices { get; set; }
+    public PricingSubmission(string SubmittedUserName, bool TestOnly = false)
+    {
+        this.SubmittedUserName = SubmittedUserName;
+        this.TestOnly = TestOnly;
+        this.ListPrices = new HashSet<UserQuery.ListPrice>();
+        this.ListPriceBreaks = new HashSet<UserQuery.ListPriceBreak>();
+        this.CustomerPrices = new HashSet<UserQuery.CustomerPrice>();
+        this.PriceClassPrices = new HashSet<UserQuery.PriceClassPrice>();
+        Assert.True(User() != null, $"Cannot match on user {SubmittedUserName}"!);
+    }
+    public User User()
+    {
+        return context.db.Users.FirstOrDefault(u => u.UserName == this.SubmittedUserName);
+    }
+}
+
+public class PricingBase
+{
+    public string ItemCode { get; set; }
+    public decimal Value { get; set; }
+    public string CurrencyCode { get; set; }
+    public DateTime Start { get; set; }
+    public DateTime? End { get; set; }
+    public Item Item()
+    {
+        return context.db.Items.FirstOrDefault(i => i.ItemCode == this.ItemCode);
+    }
+    public Currency Currency()
+    {
+        return context.db.Currencies.First(c => c.CurrencyCode == this.CurrencyCode);
+    }
+}
+
+public class PricingBaseWithProject : PricingBase
+{
+    public string ProjectName { get; set; }
+    public Project Project()
+    {
+        return context.db.Projects.FirstOrDefault(i => i.ProjectName == this.ProjectName);
+    }
+}
+
+public class ListPrice : PricingBase
+{
+    public int MinOrder { get; set; }
+    public ListPrice(string itemcode, decimal value, DateTime start, DateTime? end)
+    {
+        this.ItemCode = itemcode;
+        this.Value = value;
+        this.Start = start;
+        this.End = end;
+        this.MinOrder = 1;
+        this.CurrencyCode = "AUD";
+        if (this.Item() == null) throw new DataException($"Cannot update for item '{itemcode}' as does not exist! Check spelling or remove.");
+    }
+    new public Currency Currency()
+    {
+        if (this.CurrencyCode == null) return context.db.Currencies.First(c => c.CurrencyCode == "AUD");
+        return context.db.Currencies.First(c => c.CurrencyCode == this.CurrencyCode);
+    }
+}
+
+public class ListPriceBreak : PricingBaseWithProject
+{
+    public int BreakQty { get; set; }
+    public ListPriceBreak() { }
+    public ListPriceBreak(string itemcode, decimal value, DateTime start, DateTime? end, int break_qty, string project_name, string currency_code)
+    {
+        this.ItemCode = itemcode;
+        this.Value = value;
+        this.Start = start;
+        this.End = end;
+        this.BreakQty = break_qty;
+        this.ProjectName = project_name;
+        this.CurrencyCode = currency_code;
+        if (this.Item() == null) throw new DataException($"Cannot update for item '{itemcode}' as does not exist! Check spelling or remove.");
+    }
+    new public Currency Currency()
+    {
+        if (this.CurrencyCode == null) return context.db.Currencies.First(c => c.CurrencyCode == "AUD");
+        return context.db.Currencies.First(c => c.CurrencyCode == this.CurrencyCode);
+    }
+}
+
+public class CustomerPrice : PricingBaseWithProject
+{
+    public string CustomerCode { get; set; }
+    public int BreakQty { get; set; }
+    public CustomerPrice() { }
+    public CustomerPrice(string customer_code, string itemcode, decimal value, DateTime start, DateTime? end, int break_qty, string project_name, string currency_code)
+    {
+        this.CustomerCode = customer_code;
+        this.ItemCode = itemcode;
+        this.Value = value;
+        this.Start = start;
+        this.End = end;
+        this.BreakQty = break_qty;
+        this.ProjectName = project_name;
+        this.CurrencyCode = currency_code;
+        if (this.Item() == null) throw new DataException($"Cannot update for item '{itemcode}' as does not exist! Check spelling or remove.");
+        if (this.Customer() == null) throw new DataException($"Cannot update for Customer '{customer_code}' as does not exist! Check spelling or remove.");
+    }
+    public Customer Customer()
+    {
+        return context.db.Customers.FirstOrDefault(i => i.CustomerCode == this.CustomerCode);
+    }
+    new public Currency Currency()
+    {
+        if (this.CurrencyCode == null)
+        {
+            var cust_div_config = this.Customer().CustomerDivisions.First().CustomerDivisionConfigurationValues.FirstOrDefault(d => d.EntityTypeConfiguration.ConfigurationName == "DefaultTransactionCurrency");
+            if (cust_div_config != null)
+            {
+                var id = cust_div_config.ConfigurationValue;
+                return context.db.Currencies.First(c => c.CurrencyID.ToString() == id);
+            }
+            var div_id = this.Customer().CustomerDivisions.First().Division.Trading.TradingCurrencyID;
+            return context.db.Currencies.First(c => c.CurrencyID == div_id);
+        }
+        return context.db.Currencies.First(c => c.CurrencyCode == this.CurrencyCode);
+    }
+}
+
+public class PriceClassPrice : PricingBaseWithProject
+{
+    public string PriceClassName { get; set; }
+    public int BreakQty { get; set; }
+    public PriceClassPrice() { }
+    public PriceClassPrice(string price_class_name, string itemcode, decimal value, DateTime start, DateTime? end, int break_qty, string project_name, string currency_code)
+    {
+        this.PriceClassName = price_class_name;
+        this.ItemCode = itemcode;
+        this.Value = value;
+        this.Start = start;
+        this.End = end;
+        this.BreakQty = break_qty;
+        this.ProjectName = project_name;
+        this.CurrencyCode = currency_code;
+        if (this.Item() == null) throw new DataException($"Cannot update for item '{itemcode}' as does not exist! Check spelling or remove.");
+        if (this.PriceClass() == null) throw new DataException($"Cannot update for Customer '{price_class_name}' as does not exist! Check spelling or remove.");
+    }
+    public EntityClassificationCategory PriceClass()
+    {
+        return context.db.EntityClassificationCategories.FirstOrDefault(c => c.EntityClassificationCategoryDisplayName == PriceClassName && c.EntityClassificationCategoryGroupID == 12);
+    }
+    new public Currency Currency()
+    {
+        if (this.CurrencyCode == null)
+        {
+            var customers = context.db.Customers.Where(c => c.CustomerConfigurationValues.Any(s =>
+                    s.EntityTypeConfiguration.ConfigurationDisplayName == "Customer Price Class"
+                    &&
+                    s.ConfigurationValue != null
+                    &&
+                    context.db.EntityClassificationCategories.FirstOrDefault(e =>
+                            e.EntityClassificationCategoryID.ToString() == s.ConfigurationValue).EntityClassificationCategoryDisplayName == this.PriceClass().EntityClassificationCategoryDisplayCode
+                ));
+            string.Format("Holding election for single currency with {0} customers.", customers.Count()).Dump();
+            customers.Select(c => c.CustomerCode).Dump();
+            Dictionary<Currency, int> votes = new Dictionary<Currency, int>();
+            foreach (var customer in customers)
+            {
+                $"{customer.CustomerCode}! - {customer.CustomerDivisions.First().Division.Company.BaseCurrencyID.ToString()}".Dump();
+                var cust_div_config = customer.CustomerDivisions.First().CustomerDivisionConfigurationValues.FirstOrDefault(d => d.EntityTypeConfiguration.ConfigurationName == "DefaultTransactionCurrency");
+                string id = "";
+                if (cust_div_config != null) id = cust_div_config.ConfigurationValue;
+                if (cust_div_config == null) id = customer.CustomerDivisions.First().Division.Trading.TradingCurrencyID.ToString();
+                var currency = context.db.Currencies.First(c => c.CurrencyID.ToString() == id);
+                if (!votes.ContainsKey(currency)) votes[currency] = 1;
+                votes[currency] += 1;
+                String.Format("Adding one vote for {0}.", votes.First(v => v.Value == votes.Max(m => m.Value)).Key.CurrencyName).Dump();
+            }
+            if (votes.Count() > 0)
+            {
+                String.Format("Tally votes and we have a winner! It's {0}.", votes.First(v => v.Value == votes.Max(m => m.Value)).Key.CurrencyName).Dump();
+                return votes.First(v => v.Value == votes.Max(m => m.Value)).Key;
+            }
+            return null;
+        }
+        return context.db.Currencies.First(c => c.CurrencyCode == this.CurrencyCode);
+    }
+}
+
 
 static class helpers
 {
@@ -189,7 +533,7 @@ public class ProcessSubmission
             }
             else
             {
-                var existing_to_expire = context.db.PriceDiscountCustomerItems.Where(p => 
+                var existing_to_expire = context.db.PriceDiscountCustomerItems.Where(p =>
                         p.Customer == customer
                         &&
                         p.Item == item
@@ -265,7 +609,7 @@ public class ProcessSubmission
 
     Project get_project(string project_name, Division div, DateTime project_start, DateTime? project_end)
     {
-        if (project_name == null ||  project_name == "")
+        if (project_name == null || project_name == "")
             return null;
         Project existing_project = context.db.Projects.FirstOrDefault(p => p.ProjectName == project_name);
         if (existing_project != null)
@@ -484,4 +828,3 @@ public class ProcessSubmission
         }
     }
 }
-

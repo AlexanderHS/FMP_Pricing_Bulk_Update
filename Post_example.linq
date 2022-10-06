@@ -20,7 +20,8 @@ static class WebConfig
 {
     public const int port = 8144;
     public const string ip = "192.168.0.14";
- }
+    //public const string ip = "localhost";
+}
 
 void Main()
 {

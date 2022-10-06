@@ -1,6 +1,7 @@
 <Query Kind="Program">
   <Connection>
     <ID>98af8b0c-87dd-4eea-ae95-9cb5384fcc1c</ID>
+    <Persist>true</Persist>
     <Server>fm-sql-01.fairmont.local\FAIRMONTSQL</Server>
     <IsProduction>true</IsProduction>
     <Database>AwareNewFairmontTraining</Database>
@@ -110,9 +111,11 @@ namespace HttpListenerExample
                         "SUCCESS: Parsed JSON.".Dump();
                         data = Encoding.UTF8.GetBytes("SUCCESS");
                     }
-                    catch (IndexOutOfRangeException)
+                    catch (Exception e)
                     {
-                        data = Encoding.UTF8.GetBytes("FAIL");
+                        e.Dump();
+                        
+                        data = Encoding.UTF8.GetBytes($"Failed to parsed JSON. {e.Message}");
                         "FAIL: Failed to parsed JSON.".Dump();
                     }
                 }

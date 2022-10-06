@@ -4,7 +4,7 @@
     <Persist>true</Persist>
     <Server>fm-sql-01.fairmont.local\FAIRMONTSQL</Server>
     <IsProduction>true</IsProduction>
-    <Database>AwareNewFairmont</Database>
+    <Database>AwareNewFairmontTraining</Database>
   </Connection>
   <Namespace>Xunit</Namespace>
 </Query>
@@ -89,7 +89,7 @@ public class ListPrice : PricingBase
         this.End = end;
         this.MinOrder = 1;
         this.CurrencyCode = "AUD";
-        Assert.True(this.Item() != null);
+        if (this.Item() == null) throw new DataException($"Cannot update for item '{itemcode}' as does not exist! Check spelling or remove.");
     }
     new public Currency Currency()
     {
@@ -111,7 +111,7 @@ public class ListPriceBreak : PricingBaseWithProject
         this.BreakQty = break_qty;
         this.ProjectName = project_name;
         this.CurrencyCode = currency_code;
-        Assert.True(this.Item() != null);
+        if (this.Item() == null) throw new DataException($"Cannot update for item '{itemcode}' as does not exist! Check spelling or remove.");
     }
     new public Currency Currency()
     {
@@ -135,8 +135,8 @@ public class CustomerPrice : PricingBaseWithProject
         this.BreakQty = break_qty;
         this.ProjectName = project_name;
         this.CurrencyCode = currency_code;
-        Assert.True(this.Item() != null);
-        Assert.True(this.Customer() != null);
+        if (this.Item() == null) throw new DataException($"Cannot update for item '{itemcode}' as does not exist! Check spelling or remove.");
+        if (this.Customer() == null) throw new DataException($"Cannot update for Customer '{customer_code}' as does not exist! Check spelling or remove.");
     }
     public Customer Customer()
     {
@@ -174,8 +174,8 @@ public class PriceClassPrice : PricingBaseWithProject
         this.BreakQty = break_qty;
         this.ProjectName = project_name;
         this.CurrencyCode = currency_code;
-        Assert.True(this.Item() != null);
-        Assert.True(this.PriceClass() != null);
+        if (this.Item() == null) throw new DataException($"Cannot update for item '{itemcode}' as does not exist! Check spelling or remove.");
+        if (this.PriceClass() == null) throw new DataException($"Cannot update for Customer '{price_class_name}' as does not exist! Check spelling or remove.");
     }
     public EntityClassificationCategory PriceClass()
     {
