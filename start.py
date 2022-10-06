@@ -34,9 +34,12 @@ Anon = lambda **kwargs: type("Object", (), kwargs)
 
 url_options = [
     "https://lexica.art/api/v1/search?q=woman+at+a+computer+in+wool+top.+promotional+photo+painting",
-    "https://lexica.art/api/v1/search?q=tiger+cartoon",
     "https://lexica.art/api/v1/search?q=Western+australia+landscape",
     "https://lexica.art/api/v1/search?q=middle+earth+landscape",
+    "https://lexica.art/api/v1/search?q=tiger+cartoon",
+    "https://lexica.art/api/v1/search?q=laproscopic",
+    "https://lexica.art/api/v1/search?q=russian+ark",
+    "https://lexica.art/api/v1/search?q=old+dog",
 ]
 
 # to conduct a form submission circumventing input validation an attacker would need this
@@ -510,6 +513,6 @@ if __name__ == "__main__":
         if os.path.exists('pkls'):
             shutil.rmtree('pkls')
         from waitress import serve
-        serve(app, host="0.0.0.0", port=8083)
+        serve(app, host="0.0.0.0", port=8084)
     if os.name == "nt":
         app.run(host='0.0.0.0', port=8091, debug=True)
