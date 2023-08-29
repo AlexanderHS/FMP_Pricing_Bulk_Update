@@ -19,12 +19,13 @@ ALLOWED_EXTENSIONS = {'.csv'}
 SERVER_PATH = 'http://192.168.0.14:8144'
 NOMINAL_TEST_SUBMISSION_USER = 'AlexHS'
 DEBUG = False
+DISABLE_IMAGE = False
 
 SUBMISSION_USER_OPTIONS = [
     "-",
     "Bec",
-    "Catherine",
     "Roisin",
+    "Shanti",
 ]
 
 app = Flask(__name__)
@@ -33,13 +34,13 @@ app.config['MAX_CONTENT_PATH'] = 20000000 # 20mb = 2*10^7 bytes
 Anon = lambda **kwargs: type("Object", (), kwargs)
 
 url_options = [
-    "https://lexica.art/api/v1/search?q=woman+at+a+computer+in+wool+top.+promotional+photo+painting",
+    #"https://lexica.art/api/v1/search?q=woman+at+a+computer+in+wool+top.+promotional+photo+painting",
     "https://lexica.art/api/v1/search?q=Western+australia+landscape",
-    "https://lexica.art/api/v1/search?q=middle+earth+landscape",
-    "https://lexica.art/api/v1/search?q=tiger+cartoon",
+    #"https://lexica.art/api/v1/search?q=middle+earth+landscape",
+    #"https://lexica.art/api/v1/search?q=tiger+cartoon",
     "https://lexica.art/api/v1/search?q=laproscopic",
-    "https://lexica.art/api/v1/search?q=russian+ark",
-    "https://lexica.art/api/v1/search?q=old+dog",
+    #"https://lexica.art/api/v1/search?q=russian+ark",
+    #"https://lexica.art/api/v1/search?q=old+dog",
 ]
 
 # to conduct a form submission circumventing input validation an attacker would need this
@@ -437,10 +438,15 @@ def base_url(btn_colour='bg-warning', number=0):
     return render_template('home.html', **templateData)
 
 def get_image_url():
-    url = random.choice(url_options)
-    r = requests.get(url)
-    random_image_url = random.sample(r.json()['images'], 1)[0]['src']
-    return random_image_url
+    global DISABLE_IMAGE
+    if DISABLE_IMAGE: return ''
+    try:
+        url = random.choice(url_options)
+        r = requests.get(url)
+        random_image_url = random.sample(r.json()['images'], 1)[0]['src']
+        return random_image_url
+    except:
+        pass
 
 def is_valid_file(df, required_columns, allowed_columns, numeric_columns, date_columns):
     for c in required_columns:

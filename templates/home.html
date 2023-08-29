@@ -25,12 +25,7 @@ img {
         {% endfor %}
         <br>
         <br>
-        <div class="landscape">
-            <img src="{{image_url}}" alt="FMP">
-            <figcaption class="blockquote-footer">
-                AI generated image from <cite title="Source Title"><a href="https://lexica.art/?q=woman+at+a+computer+in+wool+top.+promotional+photo+painting">Lexica</a></cite>
-              </figcaption>
-        </div>
+        {% include 'image_footer.html' %}
     </div>
 </div>
 {% endblock %}
