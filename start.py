@@ -490,7 +490,7 @@ def is_valid_file(df, required_columns, allowed_columns, numeric_columns, date_c
             value = row[c]
             if value == '' or value == None or value == 'nat' or ((type(value) == float or type(value) == int) and math.isnan(value)) or pd.isnull(value):
                 flash(f"Found blanks in column '{c}'. Cannot continue.", 'warning')
-                flash(f"Problematic value is {row[c]} in '{row}'", 'warning')
+                flash(f"Problematic value is {row[c]} in '{row}'", 'error')
                 return False
     return True
 
