@@ -18,7 +18,7 @@ UPLOAD_FOLDER = '/uploads'
 ALLOWED_EXTENSIONS = {'.csv'}
 SERVER_PATH = 'http://192.168.0.14:8144'
 NOMINAL_TEST_SUBMISSION_USER = 'AlexHS'
-DEBUG = False
+DEBUG = True
 DISABLE_IMAGE = False
 
 SUBMISSION_USER_OPTIONS = [
@@ -287,10 +287,12 @@ def form_file_submit(form: UploadForm, type: str, user: str):
             df = pd.read_csv(local_path)
             df = df.loc[:, ~df.columns.str.contains('^Unnamed')] # drop extra columns. e.g. itemcode,value,, -> itemcode,value
             df.dropna(axis = 0, how='all', inplace = True) # drop rows which are all NAN e.g. del ',,,,'
-            if 'value' in df.columns and df['value'].dtype == object and isinstance(df.iloc[0]['value'], str):
-                df['value']=df.value.map(lambda x: locale.atof(x.strip().strip('$').replace(',', '')))
-            if 'Value' in df.columns and df['Value'].dtype == object and isinstance(df.iloc[0]['Value'], str):
-                df['Value']=df.Value.map(lambda x: locale.atof(x.strip().strip('$').replace(',', '')))
+            if 'value' in df.columns:
+                print(df['value'])
+                df['value'] = df['value'].apply(lambda x: locale.atof(x.strip().strip('$').replace(',', '')) if isinstance(x, str) else x)
+            if 'Value' in df.columns:
+                print(df['Value'])
+                df['Value'] = df['Value'].apply(lambda x: locale.atof(x.strip().strip('$').replace(',', '')) if isinstance(x, str) else x)
             df.columns = df.columns.str.lower()
             os.remove(local_path)
     if type == 'list' and 'break qty' in df.columns:
@@ -488,6 +490,7 @@ def is_valid_file(df, required_columns, allowed_columns, numeric_columns, date_c
             value = row[c]
             if value == '' or value == None or value == 'nat' or ((type(value) == float or type(value) == int) and math.isnan(value)) or pd.isnull(value):
                 flash(f"Found blanks in column '{c}'. Cannot continue.", 'warning')
+                flash(f"Problematic value is {row[c]} in '{row}'", 'warning')
                 return False
     return True
 
